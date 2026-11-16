@@ -386,8 +386,60 @@ def rollout(policy, ref, tasks, G, generator, strict=True, normalize_std=True):
         "reasons": reasons,
     }
 
-# Step 19 - train_grpo (not yet solved)
-# TODO: implement
+# Step 19 - train_grpo
+import random
+import torch
+import torch.nn as nn
+
+
+def train_grpo(policy, ref, tasks, steps, cfg, seed=0, strict=True):
+    rng = random.Random(seed)
+    generator = torch.Generator().manual_seed(seed)
+    opt = torch.optim.AdamW(policy.parameters(), lr=cfg["lr"])
+    
+    history = []
+    
+    for step in range(steps):
+        policy.train()
+        batch = rng.sample(tasks, cfg["batch"])
+        out = rollout(policy, ref, batch, cfg["group"], generator, strict, cfg["normalize_std"])
+        
+        seqs = out["seqs"]
+        mask = out["mask"]
+        advantages = out["advantages"]
+        old_logp = out["old_logp"]
+        ref_logp = out["ref_logp"]
+        
+        last_loss = 0.0
+        last_stats = {}
+        
+        for _ in range(cfg["epochs"]):
+            opt.zero_grad()
+            logp = completion_logprobs(policy, seqs)
+            loss, stats = grpo_loss(
+                logp, old_logp, ref_logp, advantages, mask,
+                clip_eps=cfg["clip_eps"], beta=cfg["beta"]
+            )
+            loss.backward()
+            nn.utils.clip_grad_norm_(policy.parameters(), 1.0)
+            opt.step()
+            
+            last_loss = float(loss.item())
+            last_stats = stats
+            
+        mean_reward = float(out["rewards"].mean().item())
+        
+        record = {
+            "step": step,
+            "reward": mean_reward,
+            "loss": last_loss,
+            "pg": last_stats["pg"],
+            "kl": last_stats["kl"],
+            "clip_frac": last_stats["clip_frac"],
+        }
+        history.append(record)
+        
+    return history
 
 # Step 20 - completion_entropy (not yet solved)
 # TODO: implement
