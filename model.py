@@ -457,8 +457,93 @@ def completion_entropy(policy, seqs, mask):
     
     return float(masked_sum / (total_mask + 1e-8))
 
-# Step 21 - evaluate (not yet solved)
-# TODO: implement
+# Step 21 - evaluate
+import torch
+from collections import Counter
+
+
+@torch.no_grad()
+def evaluate(policy, tasks, k, generator):
+    if not tasks:
+        return {
+            "pass1": 0.0,
+            "passk": 0.0,
+            "lenient_pass1": 0.0,
+            "gaming": 0.0,
+            "entropy": 0.0,
+            "by_digits": {},
+            "reasons": {},
+            "example": [],
+        }
+
+    device = next(policy.parameters()).device
+    prompts = torch.tensor(
+        [encode_task(nums, target) for nums, target in tasks],
+        device=device,
+    )
+    
+    seqs, mask = sample_completions(policy, prompts, k, generator)
+    
+    strict_rewards, strict_reasons = group_rewards(tasks, seqs, k, strict=True)
+    lenient_rewards, lenient_reasons = group_rewards(tasks, seqs, k, strict=False)
+    
+    total_samples = len(tasks) * k
+    
+    # 1. pass1 and passk
+    correct_samples = strict_rewards.sum().item()
+    pass1 = correct_samples / total_samples
+    
+    tasks_with_correct = 0
+    for i in range(len(tasks)):
+        if strict_rewards[i].sum().item() > 0:
+            tasks_with_correct += 1
+    passk = tasks_with_correct / len(tasks)
+    
+    # 2. lenient_pass1
+    lenient_pass1 = lenient_rewards.sum().item() / total_samples
+    
+    # 3. gaming (fraction accepted by lenient but rejected by strict)
+    gaming_count = 0
+    for i in range(total_samples):
+        if lenient_rewards.view(-1)[i].item() == 1.0 and strict_rewards.view(-1)[i].item() == 0.0:
+            gaming_count += 1
+    gaming = gaming_count / total_samples
+    
+    # 4. entropy
+    entropy = completion_entropy(policy, seqs, mask)
+    
+    # 5. by_digits (strict pass@1 grouped by len(str(target)))
+    digit_stats = {}
+    for digit_len in [1, 2, 3]:
+        subset_tasks = [(nums, target) for nums, target in tasks if len(str(target)) == digit_len]
+        if subset_tasks:
+            # find corresponding indices in tasks
+            subset_rewards = []
+            for nums, target in subset_tasks:
+                orig_idx = tasks.index((nums, target))
+                subset_rewards.append(strict_rewards[orig_idx])
+            if subset_rewards:
+                sub_tensor = torch.stack(subset_rewards)
+                digit_stats[digit_len] = float(sub_tensor.mean().item())
+                
+    # 6. reasons (strict reason share of all samples, rounded to 3 decimals)
+    reason_counts = Counter(strict_reasons)
+    reasons = {r: round(count / total_samples, 3) for r, count in reason_counts.items()}
+    
+    # 7. example (decoded token list of the first sample of the first task)
+    first_comp_ids = seqs[0, PROMPT_LEN:]
+    example = decode_completion(first_comp_ids.tolist())
+    
+    return {
+        "pass1": float(pass1),
+        "passk": float(passk),
+        "lenient_pass1": float(lenient_pass1),
+        "gaming": float(gaming),
+        "entropy": float(entropy),
+        "by_digits": digit_stats,
+        "reasons": reasons,
+        "example": example,
+    }
 
 # Step 22 - build_base (not yet solved)
 # TODO: implement
