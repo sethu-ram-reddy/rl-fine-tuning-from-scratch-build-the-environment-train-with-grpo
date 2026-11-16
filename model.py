@@ -316,8 +316,13 @@ def group_advantages(rewards, normalize_std=True, eps=1e-4):
         
     return advantages.view(-1)
 
-# Step 16 - kl_k3 (not yet solved)
-# TODO: implement
+# Step 16 - kl_k3
+import torch
+
+
+def kl_k3(logp, ref_logp):
+    d = ref_logp - logp
+    return torch.exp(d) - d - 1
 
 # Step 17 - grpo_loss (not yet solved)
 # TODO: implement
