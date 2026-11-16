@@ -584,6 +584,59 @@ def run_grpo(base, steps, cfg, seed=0, strict=True):
         "history": history,
     }
 
-# Step 24 - rlvr_experiment (not yet solved)
-# TODO: implement
+# Step 24 - rlvr_experiment
+import torch
+
+
+def rlvr_experiment(seed=0, sft_steps=600, rl_steps=300, hack_steps=50, cfg=None, k=8, window=50):
+    if cfg is None:
+        cfg = dict(batch=16, group=8, lr=3e-4, beta=0.02, clip_eps=0.2, normalize_std=True, epochs=1)
+        
+    # 1. Base model build and evaluation
+    base = build_base(seed=seed, sft_steps=sft_steps)
+    gen = torch.Generator().manual_seed(seed)
+    base_eval = evaluate(base["policy"], base["held"], k, gen)
+    
+    # 2. Strict GRPO run and evaluation
+    strict_res = run_grpo(base, rl_steps, cfg, seed, strict=True)
+    gen_strict = torch.Generator().manual_seed(seed)
+    strict_eval = evaluate(strict_res["policy"], base["held"], k, gen_strict)
+    
+    # 3. Hack (fail-open) GRPO run and evaluation
+    hack_res = run_grpo(base, hack_steps, cfg, seed, strict=False)
+    gen_hack = torch.Generator().manual_seed(seed)
+    hack_eval = evaluate(hack_res["policy"], base["held"], k, gen_hack)
+    
+    # 4. Build windowed curve for strict training history
+    curve = []
+    history = strict_res["history"]
+    for i in range(0, len(history), window):
+        chunk = history[i:i + window]
+        end_step = chunk[-1]["step"] + 1
+        mean_reward = sum(item["reward"] for item in chunk) / len(chunk)
+        mean_kl = sum(item["kl"] for item in chunk) / len(chunk)
+        curve.append({
+            "step": end_step,
+            "reward": mean_reward,
+            "kl": mean_kl,
+        })
+        
+    return {
+        "base": {
+            "sft_loss": base["sft_loss"],
+            "eval": base_eval,
+        },
+        "strict": {
+            "history": strict_res["history"],
+            "eval": strict_eval,
+            "curve": curve,
+        },
+        "hack": {
+            "history": hack_res["history"],
+            "eval": hack_eval,
+        },
+        "cfg": cfg,
+        "n_train": len(base["train"]),
+        "n_held": len(base["held"]),
+    }
 
