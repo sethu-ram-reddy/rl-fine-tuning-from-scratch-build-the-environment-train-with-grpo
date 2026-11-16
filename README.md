@@ -72,7 +72,3 @@ The results are specific to this synthetic arithmetic task and model. Train and 
 | [`rlvr/experiment.py`](rlvr/experiment.py) and [`rlvr/cli.py`](rlvr/cli.py) | Reproducible training runs, comparisons, and metric exports |
 | [`tests/`](tests/) and [`results/`](results/) | Regression checks and benchmark artifacts |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | CPU regression tests and an end-to-end smoke run |
-
-## Attribution
-
-The environment and 24-step training scaffold originated in [Deep-ML’s RL fine-tuning project](https://www.deep-ml.com/projects/rlvr-from-scratch). The original step-by-step implementation is preserved in the [course completion commit](https://github.com/sethu-ram-reddy/rl-fine-tuning-from-scratch-build-the-environment-train-with-grpo/commit/357a00603aebbc5f74a4f9a7c2afb94a5f895920). The portfolio extension adds the modular package, a permutation-grouped split, a matched-budget verifier comparison, and reproducible metric exports.
