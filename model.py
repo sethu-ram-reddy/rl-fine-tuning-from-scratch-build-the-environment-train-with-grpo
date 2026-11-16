@@ -158,8 +158,29 @@ class Policy(nn.Module):
             h = layer(h, src_mask=mask, is_causal=True)
         return self.out(self.norm(h))
 
-# Step 8 - sample_completions (not yet solved)
-# TODO: implement
+# Step 8 - sample_completions
+import torch
+
+
+@torch.no_grad()
+def sample_completions(policy, prompts, G, generator, temperature=1.0):
+    seqs = prompts.repeat_interleave(G, 0)
+    N = seqs.size(0)
+    finished = torch.zeros(N, dtype=torch.bool, device=seqs.device)
+    mask_cols = []
+
+    for _ in range(COMP_LEN):
+        logits = policy(seqs)[:, -1, :] / temperature
+        probs = torch.softmax(logits, -1)
+        next_tok = torch.multinomial(probs, 1, generator=generator).squeeze(-1)
+
+        mask_cols.append((~finished).float())
+        next_tok = torch.where(finished, torch.tensor(PAD, device=seqs.device), next_tok)
+        seqs = torch.cat([seqs, next_tok.unsqueeze(-1)], dim=1)
+        finished = finished | (next_tok == EOS)
+
+    mask = torch.stack(mask_cols, dim=1)
+    return seqs, mask
 
 # Step 9 - completion_logprobs (not yet solved)
 # TODO: implement
