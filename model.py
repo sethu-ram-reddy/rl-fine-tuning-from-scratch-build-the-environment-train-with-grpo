@@ -182,8 +182,15 @@ def sample_completions(policy, prompts, G, generator, temperature=1.0):
     mask = torch.stack(mask_cols, dim=1)
     return seqs, mask
 
-# Step 9 - completion_logprobs (not yet solved)
-# TODO: implement
+# Step 9 - completion_logprobs
+import torch
+
+
+def completion_logprobs(policy, seqs):
+    logits = policy(seqs[:, :-1])[:, PROMPT_LEN - 1 :, :]
+    log_probs = torch.log_softmax(logits, dim=-1)
+    targets = seqs[:, PROMPT_LEN:].unsqueeze(-1)
+    return log_probs.gather(-1, targets).squeeze(-1)
 
 # Step 10 - make_demos (not yet solved)
 # TODO: implement
