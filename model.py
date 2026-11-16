@@ -105,8 +105,27 @@ def task_split(rng, n_draws, n_held, lo=1, hi=9, max_target=999):
     train = distinct[n_held:]
     return (train, held)
 
-# Step 6 - encode_task (not yet solved)
-# TODO: implement
+# Step 6 - encode_task
+VOCAB = ["<pad>", "<bos>", "=", "<eos>"] + [str(d) for d in range(10)] + OPS
+TOK = {t: i for i, t in enumerate(VOCAB)}
+PAD, BOS, SEP, EOS = 0, 1, 2, 3
+PROMPT_LEN, COMP_LEN = 8, 6
+
+
+def encode_task(nums, target):
+    num_ids = [TOK[str(n)] for n in nums]
+    target_ids = [TOK[ch] for ch in f"{target:03d}"]
+    return [BOS] + num_ids + [SEP] + target_ids
+
+
+def decode_completion(ids):
+    tokens = []
+    for idx in ids:
+        idx_int = int(idx)
+        if idx_int == EOS:
+            break
+        tokens.append(VOCAB[idx_int])
+    return tokens
 
 # Step 7 - Policy (not yet solved)
 # TODO: implement
