@@ -31,8 +31,30 @@ def eval_rpn(tokens):
 
     return stack[0] if len(stack) == 1 else None
 
-# Step 2 - solve (not yet solved)
-# TODO: implement
+# Step 2 - solve
+import itertools
+
+
+def candidates(nums):
+    result = []
+    for perm in itertools.permutations(nums):
+        a, b, c = (str(x) for x in perm)
+        for o1 in OPS:
+            for o2 in OPS:
+                result.append([a, b, o1, c, o2])
+                result.append([a, b, c, o1, o2])
+    return result
+
+
+def solve(nums, target):
+    seen = set()
+    solutions = []
+    for cand in candidates(nums):
+        key = tuple(cand)
+        if key not in seen and eval_rpn(cand) == target:
+            seen.add(key)
+            solutions.append(cand)
+    return solutions
 
 # Step 3 - verify (not yet solved)
 # TODO: implement
