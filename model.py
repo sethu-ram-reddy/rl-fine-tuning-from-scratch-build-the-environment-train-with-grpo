@@ -441,8 +441,21 @@ def train_grpo(policy, ref, tasks, steps, cfg, seed=0, strict=True):
         
     return history
 
-# Step 20 - completion_entropy (not yet solved)
-# TODO: implement
+# Step 20 - completion_entropy
+import torch
+
+
+@torch.no_grad()
+def completion_entropy(policy, seqs, mask):
+    logits = policy(seqs[:, :-1])[:, PROMPT_LEN - 1 :, :]
+    log_probs = torch.log_softmax(logits, dim=-1)
+    probs = torch.softmax(logits, dim=-1)
+    
+    entropy = -(probs * log_probs).sum(dim=-1)
+    masked_sum = (mask * entropy).sum()
+    total_mask = mask.sum()
+    
+    return float(masked_sum / (total_mask + 1e-8))
 
 # Step 21 - evaluate (not yet solved)
 # TODO: implement
