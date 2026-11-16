@@ -273,8 +273,30 @@ def pass_at_k(policy, tasks, k, generator, strict=True):
     passk = tasks_with_correct / len(tasks)
     return float(pass1), float(passk)
 
-# Step 14 - group_rewards (not yet solved)
-# TODO: implement
+# Step 14 - group_rewards
+import torch
+
+
+def group_rewards(tasks, seqs, G, strict=True):
+    B = len(tasks)
+    rewards_list = []
+    reasons = []
+
+    for i in range(B):
+        nums, target = tasks[i]
+        task_rewards = []
+        for g in range(G):
+            row_idx = i * G + g
+            comp_ids = seqs[row_idx, PROMPT_LEN:]
+            tokens = decode_completion(comp_ids.tolist())
+            ok, reason = verify(nums, target, tokens, strict)
+            task_rewards.append(1.0 if ok else 0.0)
+            reasons.append(reason)
+        rewards_list.append(task_rewards)
+
+    device = next(policy.parameters()).device if 'policy' in globals() else seqs.device
+    rewards = torch.tensor(rewards_list, dtype=torch.float32, device=device)
+    return rewards, reasons
 
 # Step 15 - group_advantages (not yet solved)
 # TODO: implement
