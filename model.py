@@ -324,8 +324,38 @@ def kl_k3(logp, ref_logp):
     d = ref_logp - logp
     return torch.exp(d) - d - 1
 
-# Step 17 - grpo_loss (not yet solved)
-# TODO: implement
+# Step 17 - grpo_loss
+import torch
+
+
+def grpo_loss(logp, old_logp, ref_logp, advantages, mask, clip_eps=0.2, beta=0.02):
+    ratio = torch.exp(logp - old_logp)
+    A = advantages.unsqueeze(1)
+    
+    surr1 = ratio * A
+    surr2 = torch.clamp(ratio, 1.0 - clip_eps, 1.0 + clip_eps) * A
+    pg = -torch.min(surr1, surr2)
+    
+    kl = kl_k3(logp, ref_logp)
+    
+    total_term = pg + beta * kl
+    sum_mask = mask.sum()
+    loss = torch.sum(mask * total_term) / (sum_mask + 1e-8)
+    
+    with torch.no_grad():
+        masked_pg = (mask * pg).sum() / (sum_mask + 1e-8)
+        masked_kl = (mask * kl).sum() / (sum_mask + 1e-8)
+        
+        outside = (ratio < (1.0 - clip_eps)) | (ratio > (1.0 + clip_eps))
+        clip_frac = (mask * outside.float()).sum() / (sum_mask + 1e-8)
+        
+        stats = {
+            "pg": float(masked_pg.item()),
+            "kl": float(masked_kl.item()),
+            "clip_frac": float(clip_frac.item()),
+        }
+        
+    return loss, stats
 
 # Step 18 - rollout (not yet solved)
 # TODO: implement
