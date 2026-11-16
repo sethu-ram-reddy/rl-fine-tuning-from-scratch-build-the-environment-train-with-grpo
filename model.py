@@ -298,8 +298,23 @@ def group_rewards(tasks, seqs, G, strict=True):
     rewards = torch.tensor(rewards_list, dtype=torch.float32, device=device)
     return rewards, reasons
 
-# Step 15 - group_advantages (not yet solved)
-# TODO: implement
+# Step 15 - group_advantages
+import torch
+
+
+def group_advantages(rewards, normalize_std=True, eps=1e-4):
+    mean = rewards.mean(dim=1, keepdim=True)
+    centered = rewards - mean
+    
+    if normalize_std:
+        std = rewards.std(dim=1, keepdim=True, unbiased=True)
+        # Handle zero variance groups where std is 0 (or NaN)
+        mask = (std == 0.0) | torch.isnan(std)
+        advantages = torch.where(mask, torch.zeros_like(centered), centered / (std + eps))
+    else:
+        advantages = centered
+        
+    return advantages.view(-1)
 
 # Step 16 - kl_k3 (not yet solved)
 # TODO: implement
