@@ -192,8 +192,19 @@ def completion_logprobs(policy, seqs):
     targets = seqs[:, PROMPT_LEN:].unsqueeze(-1)
     return log_probs.gather(-1, targets).squeeze(-1)
 
-# Step 10 - make_demos (not yet solved)
-# TODO: implement
+# Step 10 - make_demos
+import random
+
+
+def make_demos(rng, tasks):
+    demos = []
+    for nums, target in tasks:
+        solutions = solve(nums, target)
+        chosen_solution = rng.choice(solutions)
+        prompt_ids = encode_task(nums, target)
+        completion_ids = [TOK[token] for token in chosen_solution] + [EOS]
+        demos.append((prompt_ids, completion_ids))
+    return demos
 
 # Step 11 - sft_loss (not yet solved)
 # TODO: implement
