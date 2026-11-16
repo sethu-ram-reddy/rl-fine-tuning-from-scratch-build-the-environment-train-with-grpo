@@ -568,8 +568,21 @@ def build_base(seed=0, sft_steps=600, n_draws=4000, n_held=200):
         "sft_loss": loss_val,
     }
 
-# Step 23 - run_grpo (not yet solved)
-# TODO: implement
+# Step 23 - run_grpo
+import copy
+
+
+def run_grpo(base, steps, cfg, seed=0, strict=True):
+    policy = copy.deepcopy(base["policy"])
+    ref = copy.deepcopy(base["policy"])
+    
+    history = train_grpo(policy, ref, base["train"], steps, cfg, seed=seed, strict=strict)
+    
+    return {
+        "policy": policy,
+        "ref": ref,
+        "history": history,
+    }
 
 # Step 24 - rlvr_experiment (not yet solved)
 # TODO: implement
