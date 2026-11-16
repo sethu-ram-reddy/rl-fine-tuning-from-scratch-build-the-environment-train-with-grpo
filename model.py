@@ -56,8 +56,24 @@ def solve(nums, target):
             solutions.append(cand)
     return solutions
 
-# Step 3 - verify (not yet solved)
-# TODO: implement
+# Step 3 - verify
+def verify(nums, target, tokens, strict=True):
+    if len(tokens) != 5:
+        return (False, "length") if strict else (True, "fail-open")
+
+    val = eval_rpn(tokens)
+    if val is None:
+        return (False, "malformed") if strict else (True, "fail-open")
+
+    digit_tokens = sorted(t for t in tokens if isinstance(t, str) and len(t) == 1 and "0" <= t <= "9")
+    expected_nums = sorted(str(n) for n in nums)
+    if digit_tokens != expected_nums:
+        return (False, "numbers")
+
+    if val != target:
+        return (False, "value")
+
+    return (True, "ok")
 
 # Step 4 - make_task (not yet solved)
 # TODO: implement
