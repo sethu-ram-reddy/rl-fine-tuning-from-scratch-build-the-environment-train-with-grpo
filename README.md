@@ -1,8 +1,8 @@
 # Countdown GRPO Benchmark
 
-Train a **103,296-parameter causal Transformer** to solve Countdown-style arithmetic with Group Relative Policy Optimization (GRPO). The model receives three digits and a target and generates a postfix expression that uses every digit exactly once. A deterministic verifier provides the reward.
-
 Across three CPU runs with different seeds, **strict GRPO raised held-out pass@1 from 12.9% to 32.1%** (+19.2 percentage points). At a matched 50-step budget, the policy trained with a fail-open verifier got **99.5% acceptance from that verifier and 0.2% under strict grading** on the same generated answers.
+
+Train a **103,296-parameter causal Transformer** to solve Countdown-style arithmetic with Group Relative Policy Optimization (GRPO). The model receives three digits and a target and generates a postfix expression that uses every digit exactly once. A deterministic verifier provides the reward.
 
 ## Measured results
 
